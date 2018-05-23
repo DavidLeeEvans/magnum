@@ -46,7 +46,14 @@ endif()
 if(WITH_SDL2APPLICATION)
     add_executable(PlatformSdl2ApplicationTest Sdl2ApplicationTest.cpp)
     target_link_libraries(PlatformSdl2ApplicationTest PRIVATE MagnumSdl2Application)
-    if(CORRADE_TARGET_IOS)
+    if(CORRADE_TARGET_EMSCRIPTEN)
+        # So we can spin up a webserver in the build dir for easy testing
+        file(COPY
+            ../EmscriptenApplication.js
+            ../WebApplication.css
+            Sdl2ApplicationTest.html
+            DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+    elseif(CORRADE_TARGET_IOS)
         set_target_properties(PlatformSdl2ApplicationTest PROPERTIES
             MACOSX_BUNDLE ON
             XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED "YES")
@@ -66,6 +73,14 @@ endif()
 if(WITH_WINDOWLESSEGLAPPLICATION)
     add_executable(PlatformWindowlessEglApplicationTest WindowlessEglApplicationTest.cpp)
     target_link_libraries(PlatformWindowlessEglApplicationTest PRIVATE MagnumWindowlessEglApplication)
+    if(CORRADE_TARGET_EMSCRIPTEN)
+        # So we can spin up a webserver in the build dir for easy testing
+        file(COPY
+            ../WindowlessEmscriptenApplication.js
+            ../WebApplication.css
+            WindowlessEglApplicationTest.html
+            DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+    endif()
 endif()
 
 if(WITH_WINDOWLESSGLXAPPLICATION)

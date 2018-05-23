@@ -30,10 +30,12 @@
 #include <tuple>
 #else
 #include <emscripten/emscripten.h>
+#include <emscripten/html5.h>
 #endif
 
 #include "Magnum/Math/Range.h"
 #include "Magnum/Platform/ScreenedApplication.hpp"
+#include "Magnum/Platform/Implementation/dpiScaling.hpp"
 
 #ifdef MAGNUM_TARGET_GL
 #include "Magnum/GL/Version.h"
@@ -78,13 +80,46 @@ Sdl2Application::Sdl2Application(const Arguments& arguments, NoCreateT):
     _minimalLoopPeriod{0},
     #endif
     #ifdef MAGNUM_TARGET_GL
-    _glContext{nullptr}, _context{new GLContext{NoCreate, arguments.argc, arguments.argv}},
+    _glContext{nullptr},
     #endif
     _flags{Flag::Redraw}
 {
+    Utility::Arguments args{Implementation::windowScalingArguments()};
+    #ifdef MAGNUM_TARGET_GL
+    _context.reset(new GLContext{NoCreate, args, arguments.argc, arguments.argv});
+    #endif
+
     if(SDL_Init(SDL_INIT_VIDEO) < 0) {
         Error() << "Cannot initialize SDL.";
         std::exit(1);
+    }
+
+    const std::string dpiScaling = args.value("dpi-scaling");
+    #ifdef _MAGNUM_PLATFORM_USE_X11
+    if(dpiScaling == "virtual")
+        _dpiScaling = Vector2{Implementation::x11DpiScaling()};
+    #endif
+
+    if(dpiScaling == "physical" || (dpiScaling == "virtual" && _dpiScaling.isZero())) {
+        #ifndef CORRADE_TARGET_EMSCRIPTEN
+        Vector2 dpi{1.0f};
+        if(SDL_GetDisplayDPI(0, nullptr, &dpi.x(), &dpi.y()) != 0)
+            Warning{} << "Platform::Sdl2Application: can't get physical display DPI, falling back to no scaling:" << SDL_GetError();
+
+        #ifdef CORRADE_TARGET_APPLE
+        _dpiScaling = dpi/72.0f;
+        #else
+        _dpiScaling = dpi/96.0f;
+        #endif
+        #else
+        _dpiScaling = Vector2{Float(emscripten_get_device_pixel_ratio())};
+        #endif
+
+    } else {
+        if(dpiScaling.find_first_of(" \t\n") != std::string::npos)
+            _dpiScaling = args.value<Vector2>("dpi-scaling");
+        else
+            _dpiScaling = Vector2{args.value<Float>("dpi-scaling")};
     }
 
     #ifndef MAGNUM_TARGET_GL
@@ -112,6 +147,11 @@ bool Sdl2Application::tryCreate(const Configuration& configuration) {
         return tryCreate(configuration, GLConfiguration{});
     #endif
 
+    /* Scale window based on DPI, if allowed */
+    Vector2i scaledWindowSize = configuration.size();
+    if(configuration.windowFlags() & Configuration::WindowFlag::AllowHighDpi)
+        scaledWindowSize *= _dpiScaling;
+
     #ifndef CORRADE_TARGET_EMSCRIPTEN
     /* Create window */
     if(!(_window = SDL_CreateWindow(
@@ -121,7 +161,7 @@ bool Sdl2Application::tryCreate(const Configuration& configuration) {
         nullptr,
         #endif
         SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-        configuration.size().x(), configuration.size().y(),
+        scaledWindowSize.x(), scaledWindowSize.y(),
         Uint32(configuration.windowFlags()&~Configuration::WindowFlag::Contextless))))
     {
         Error() << "Platform::Sdl2Application::tryCreate(): cannot create window:" << SDL_GetError();
@@ -129,7 +169,7 @@ bool Sdl2Application::tryCreate(const Configuration& configuration) {
     }
     #else
     /* Emscripten-specific initialization */
-    if(!(_glContext = SDL_SetVideoMode(configuration.size().x(), configuration.size().y(), 24, SDL_OPENGL|SDL_HWSURFACE|SDL_DOUBLEBUF))) {
+    if(!(_glContext = SDL_SetVideoMode(scaledWindowSize.x(), scaledWindowSize.y(), 24, SDL_OPENGL|SDL_HWSURFACE|SDL_DOUBLEBUF))) {
         Error() << "Platform::Sdl2Application::tryCreate(): cannot create window:" << SDL_GetError();
         return false;
     }
@@ -183,6 +223,9 @@ bool Sdl2Application::tryCreate(const Configuration& configuration, const GLConf
     /* sRGB */
     SDL_GL_SetAttribute(SDL_GL_FRAMEBUFFER_SRGB_CAPABLE, glConfiguration.isSRGBCapable());
     #endif
+
+    /* Scale window based on DPI */
+    const Vector2i scaledWindowSize = configuration.size()*_dpiScaling;
 
     /** @todo Remove when Emscripten has proper SDL2 support */
     #ifndef CORRADE_TARGET_EMSCRIPTEN
@@ -241,7 +284,7 @@ bool Sdl2Application::tryCreate(const Configuration& configuration, const GLConf
         nullptr,
         #endif
         SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-        configuration.size().x(), configuration.size().y(),
+        scaledWindowSize.x(), scaledWindowSize.y(),
         SDL_WINDOW_OPENGL|SDL_WINDOW_HIDDEN|Uint32(configuration.windowFlags()))))
     {
         Error() << "Platform::Sdl2Application::tryCreate(): cannot create window:" << SDL_GetError();
@@ -294,7 +337,7 @@ bool Sdl2Application::tryCreate(const Configuration& configuration, const GLConf
 
         if(!(_window = SDL_CreateWindow(configuration.title().data(),
             SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-            configuration.size().x(), configuration.size().y(),
+            scaledWindowSize.x(), scaledWindowSize.y(),
             SDL_WINDOW_OPENGL|SDL_WINDOW_HIDDEN|Uint32(configuration.windowFlags()&~Configuration::WindowFlag::Contextless))))
         {
             Error() << "Platform::Sdl2Application::tryCreate(): cannot create window:" << SDL_GetError();
@@ -325,7 +368,7 @@ bool Sdl2Application::tryCreate(const Configuration& configuration, const GLConf
     #endif
     #else
     /* Emscripten-specific initialization */
-    if(!(_glContext = SDL_SetVideoMode(configuration.size().x(), configuration.size().y(), 24, SDL_OPENGL|SDL_HWSURFACE|SDL_DOUBLEBUF))) {
+    if(!(_glContext = SDL_SetVideoMode(scaledWindowSize.x(), scaledWindowSize.y(), 24, SDL_OPENGL|SDL_HWSURFACE|SDL_DOUBLEBUF))) {
         Error() << "Platform::Sdl2Application::tryCreate(): cannot create context:" << SDL_GetError();
         return false;
     }
@@ -354,10 +397,20 @@ bool Sdl2Application::tryCreate(const Configuration& configuration, const GLConf
 }
 #endif
 
-Vector2i Sdl2Application::windowSize() {
+Vector2i Sdl2Application::windowSize() const {
     #ifndef CORRADE_TARGET_EMSCRIPTEN
     Vector2i size;
     SDL_GetWindowSize(_window, &size.x(), &size.y());
+    return size;
+    #else
+    return {_glContext->w, _glContext->h};
+    #endif
+}
+
+Vector2i Sdl2Application::framebufferSize() const {
+    #ifndef CORRADE_TARGET_EMSCRIPTEN
+    Vector2i size;
+    SDL_GL_GetDrawableSize(_window, &size.x(), &size.y());
     return size;
     #else
     return {_glContext->w, _glContext->h};

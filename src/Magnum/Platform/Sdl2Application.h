@@ -312,8 +312,32 @@ mark all non-source files (except for the `*.pfx` key) with `VS_DEPLOYMENT_CONTE
 property and optionally set their location with `VS_DEPLOYMENT_LOCATION`. If
 you are using `*.resw` files, these need to have the `VS_TOOL_OVERRIDE`
 property set to `PRIResource`.
+
+@section Platform-Sdl2Application-dpi DPI awareness
+
+Based on the target platform, screen density and system configuration, the
+following three scenarios might happen:
+
+1.  The @ref windowSize() and @ref framebufferSize() is the same and
+    @ref dpiScaling() is @cpp 1.0f @ce in both dimentsions. This is common on
+    non-HiDPI targets or on targets with emulation for non-DPI-aware apps.
+2.  Window size is equivalent to framebuffer pixel size, but @ref dpiScaling()
+    is different from @cpp 1.0f @ce. This is the case on Linux with DPI scaling
+    either coming from physical display properties or from system
+    configuration.
+3.  Window size is different from framebuffer pixel size and @ref dpiScaling()
+    is @cpp 1.0f @ce. This is the case on Windows and macOS with HiDPI-enabled
+    apps.
+
+Furthermore, the @ref Configuration::WindowFlag::AllowHighDpi flag affects how
+the window is created. Disabling the flag will cause the app behave as in case
+1, enabling will make it behave as in case 2 or 3. Note that on Apple platforms
+you also have to set the `NSHighResolutionCapable` entry in the `*.plist` file
+of the application bundle to make it working.
+
+
 */
-class Sdl2Application {
+class CORRADE_VISIBILITY_EXPORT Sdl2Application {
     public:
         /** @brief Application arguments */
         struct Arguments {
@@ -552,10 +576,35 @@ class Sdl2Application {
          * @brief Window size
          *
          * Window size to which all input event coordinates can be related.
-         * Note that especially on HiDPI systems the reported window size might
-         * not be the same as framebuffer size.
+         * Note that, especially on HiDPI systems, it may be different from
+         * @ref framebufferSize(). See @ref Platform-Sdl2Application-dpi for
+         * more information.
          */
-        Vector2i windowSize();
+        Vector2i windowSize() const;
+
+        #ifdef MAGNUM_TARGET_GL
+        /**
+         * @brief Framebuffer size
+         *
+         * Size of the default framebuffer. Note that, especially on HiDPI
+         * systems, it may be different from @ref windowSize(). See
+         * @ref Platform-Sdl2Application-dpi for more information.
+         *
+         * @note This function is available only if Magnum is compiled with
+         *      @ref MAGNUM_TARGET_GL enabled (done by default). See
+         *      @ref building-features for more information.
+         */
+        Vector2i framebufferSize() const;
+        #endif
+
+        /**
+         * @brief DPI scaling
+         *
+         * How the content should be scaled relative to system defaults for
+         * given @ref windowSize(). See @ref Platform-Sdl2Application-dpi for
+         * more information.
+         */
+        Vector2 dpiScaling() const { return _dpiScaling; }
 
         /**
          * @brief Swap buffers
@@ -815,6 +864,8 @@ class Sdl2Application {
         typedef Containers::EnumSet<Flag> Flags;
         CORRADE_ENUMSET_FRIEND_OPERATORS(Flags)
 
+        Vector2 _dpiScaling;
+
         #ifndef CORRADE_TARGET_EMSCRIPTEN
         SDL_Window* _window;
         UnsignedInt _minimalLoopPeriod;
@@ -898,6 +949,18 @@ class Sdl2Application::GLConfiguration {
          */
         GLConfiguration& setFlags(Flags flags) {
             _flags = flags;
+            return *this;
+        }
+
+        /**
+         * @brief Add context flags
+         * @return Reference to self (for method chaining)
+         *
+         * Unlike @ref setFlags(), this ORs @p flags with the current flags
+         * instead of replacing them. Useful for preserving defaults.
+         */
+        GLConfiguration& addFlags(Flags flags) {
+            _flags |= flags;
             return *this;
         }
 
@@ -1063,14 +1126,14 @@ class Sdl2Application::Configuration {
             /** No window decoration. On iOS this hides the menu bar. */
             Borderless = SDL_WINDOW_BORDERLESS,
 
-            #ifndef CORRADE_TARGET_EMSCRIPTEN
             /**
-             * Allow high DPI. On iOS you also have to set the
-             * `NSHighResolutionCapable` entry in the `*.plist` file to make
-             * it working.
-             * @note Not available in @ref CORRADE_TARGET_EMSCRIPTEN "Emscripten".
+             * Allow high DPI. See @ref Platform-Sdl2Application-dpi for more
+             * information.
              */
+            #ifndef CORRADE_TARGET_EMSCRIPTEN
             AllowHighDpi = SDL_WINDOW_ALLOW_HIGHDPI,
+            #else
+            AllowHighDpi = 0x00002000,
             #endif
 
             Hidden = SDL_WINDOW_HIDDEN,             /**< Hidden window */
@@ -1158,10 +1221,24 @@ class Sdl2Application::Configuration {
          * @brief Set window flags
          * @return Reference to self (for method chaining)
          *
-         * Default are none.
+         * Default is @ref WindowFlag::AllowHighDpi. You can also use
+         * @ref addWindowFlags() to add flags while keeping the default ones
+         * set.
          */
         Configuration& setWindowFlags(WindowFlags flags) {
             _windowFlags = flags;
+            return *this;
+        }
+
+        /**
+         * @brief Add window flags
+         * @return Reference to self (for method chaining)
+         *
+         * Unlike @ref setWindowFlags(), this ORs @p flags with the current
+         * flags instead of replacing them. Useful for preserving defaults.
+         */
+        Configuration& addWindowFlags(WindowFlags flags) {
+            _windowFlags |= flags;
             return *this;
         }
 
