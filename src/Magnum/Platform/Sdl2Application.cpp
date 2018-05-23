@@ -94,32 +94,43 @@ Sdl2Application::Sdl2Application(const Arguments& arguments, NoCreateT):
         std::exit(1);
     }
 
+    std::ostream* verbose{};
+    if(args.value("log") == "verbose") verbose = Debug::output();
+
     const std::string dpiScaling = args.value("dpi-scaling");
     #ifdef _MAGNUM_PLATFORM_USE_X11
-    if(dpiScaling == "virtual")
+    if(dpiScaling == "virtual") {
         _dpiScaling = Vector2{Implementation::x11DpiScaling()};
+        if(!_dpiScaling.isZero() && _dpiScaling != Vector2{1.0f})
+            Debug{verbose} << "Platform::Sdl2Application: virtual DPI scaling" << _dpiScaling.x();
+    }
     #endif
 
     if(dpiScaling == "physical" || (dpiScaling == "virtual" && _dpiScaling.isZero())) {
         #ifndef CORRADE_TARGET_EMSCRIPTEN
         Vector2 dpi{1.0f};
-        if(SDL_GetDisplayDPI(0, nullptr, &dpi.x(), &dpi.y()) != 0)
+        if(SDL_GetDisplayDPI(0, nullptr, &dpi.x(), &dpi.y()) != 0) {
             Warning{} << "Platform::Sdl2Application: can't get physical display DPI, falling back to no scaling:" << SDL_GetError();
-
-        #ifdef CORRADE_TARGET_APPLE
-        _dpiScaling = dpi/72.0f;
-        #else
-        _dpiScaling = dpi/96.0f;
-        #endif
+            _dpiScaling = Vector2{1.0f};
+        } else {
+            #ifdef CORRADE_TARGET_APPLE
+            _dpiScaling = dpi/72.0f;
+            #else
+            _dpiScaling = dpi/96.0f;
+            #endif
+            Debug{verbose} << "Platform::Sdl2Application: physical DPI scaling" << _dpiScaling;
+        }
         #else
         _dpiScaling = Vector2{Float(emscripten_get_device_pixel_ratio())};
+        Debug{verbose} << "Platform::Sdl2Application: physical DPI scaling" << _dpiScaling.x();
         #endif
 
-    } else {
+    } else if(_dpiScaling.isZero()) {
         if(dpiScaling.find_first_of(" \t\n") != std::string::npos)
             _dpiScaling = args.value<Vector2>("dpi-scaling");
         else
             _dpiScaling = Vector2{args.value<Float>("dpi-scaling")};
+        Debug{verbose} << "Platform::Sdl2Application: custom DPI scaling" << _dpiScaling.x();
     }
 
     #ifndef MAGNUM_TARGET_GL

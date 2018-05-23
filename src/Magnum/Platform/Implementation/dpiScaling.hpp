@@ -79,9 +79,9 @@ inline float x11DpiScaling() {
     char* type{};
     if(xrmGetResource(db, "Xft.dpi", "Xft.Dpi", &type, &value)) {
         if(type && strcmp(type, "String") == 0) {
-            const float dpi = std::stof(value.addr);
-            CORRADE_INTERNAL_ASSERT(dpi);
-            return dpi/96.0f;
+            const float scaling = std::stof(value.addr)/96.0f;
+            CORRADE_INTERNAL_ASSERT(scaling);
+            return scaling;
         }
     }
 
