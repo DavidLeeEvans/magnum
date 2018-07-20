@@ -104,10 +104,17 @@ Sdl2Application::Sdl2Application(const Arguments& arguments, NoCreateT):
         if(!_dpiScaling.isZero() && _dpiScaling != Vector2{1.0f})
             Debug{verbose} << "Platform::Sdl2Application: virtual DPI scaling" << _dpiScaling.x();
     }
+    #elif defined(CORRADE_TARGET_APPLE)
+    if(!isAppleBundleHiDpiEnabled()) {
+        Debug{verbose} << "Platform::Sdl2Application: executable is not a HiDPI-enabled bundle, using no scaling";
+    }
     #endif
 
     if(dpiScaling == "physical" || (dpiScaling == "virtual" && _dpiScaling.isZero())) {
-        #ifndef CORRADE_TARGET_EMSCRIPTEN
+        #ifdef CORRADE_TARGET_EMSCRIPTEN
+        _dpiScaling = Vector2{Float(emscripten_get_device_pixel_ratio())};
+        Debug{verbose} << "Platform::Sdl2Application: physical DPI scaling" << _dpiScaling.x();
+        #else
         Vector2 dpi{1.0f};
         if(SDL_GetDisplayDPI(0, nullptr, &dpi.x(), &dpi.y()) != 0) {
             Warning{} << "Platform::Sdl2Application: can't get physical display DPI, falling back to no scaling:" << SDL_GetError();
@@ -120,9 +127,6 @@ Sdl2Application::Sdl2Application(const Arguments& arguments, NoCreateT):
             #endif
             Debug{verbose} << "Platform::Sdl2Application: physical DPI scaling" << _dpiScaling;
         }
-        #else
-        _dpiScaling = Vector2{Float(emscripten_get_device_pixel_ratio())};
-        Debug{verbose} << "Platform::Sdl2Application: physical DPI scaling" << _dpiScaling.x();
         #endif
 
     } else if(_dpiScaling.isZero()) {

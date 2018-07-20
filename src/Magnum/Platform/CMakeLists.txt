@@ -201,6 +201,9 @@ if(WITH_SDL2APPLICATION)
     if(TARGET_GL)
         list(APPEND MagnumSdl2Application_SRCS ${MagnumSomeContext_OBJECTS})
     endif()
+    if(CORRADE_TARGET_APPLE)
+        list(APPEND MagnumSdl2Application_SRCS Implementation/dpiScaling.mm)
+    endif()
 
     add_library(MagnumSdl2Application STATIC
         ${MagnumSdl2Application_SRCS}

@@ -90,6 +90,10 @@ inline float x11DpiScaling() {
 }
 #endif
 
+#ifdef CORRADE_TARGET_APPLE
+bool isAppleBundleHiDpiEnabled();
+#endif
+
 }}}}
 
 #endif
