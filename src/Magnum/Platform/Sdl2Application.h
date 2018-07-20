@@ -315,8 +315,37 @@ property set to `PRIResource`.
 
 @section Platform-Sdl2Application-dpi DPI awareness
 
-Based on the target platform, screen density and system configuration, the
-following three scenarios might happen:
+On displays that match the platform default DPI (96 or 72),
+@ref Configuration::setSize() will create the window in exactly the requested
+size and the framebuffer pixels match display pixels 1:1. On displays that have
+different DPI, there are three possible approaches:
+
+-   Virtual DPI scaling. Scales the window based on UI scaling setting in the
+    system. For example if a 800x600 window is requested and UI scaling is set
+    to 200%, the resulting window will have 1600x1200 pixels. Falls back to
+    @ref DpiScaling::Physical on platforms that don't support it or don't have
+    a concept of a window (such as mobile devices or @ref CORRADE_TARGET_EMSCRIPTEN "Emscripten").
+-   Physical DPI scaling. Takes the requested window size as a physical size
+    that a window would have on platform's default DPI and scales it to have
+    the same size on given display physical DPI. So, for example on a display
+    with 240 DPI the window size will be 2000x1500 in pixels, but it will be 21
+    centimeters wide, the same as a 800x600 window would be on 96 DPI. On
+    platforms that don't have a concept of a window it causes the framebuffer
+    to match display pixels 1:1 without any scaling.
+-   No DPI scaling. Causes the application to behave as a non-DPI-aware (which
+    may cause blurry appearance on some systems or unreasonably small window
+    sizes on other).
+
+Default is the virtual scaling and you can override the behavior via the
+`--magnum-dpi-scaling` command-line option:
+
+-   `virtual`, `physical`, `none` --- the three options above
+-   `&lt;number&gt;` --- custom scaling, the same in both directions
+-   `"&lt;horizontal&gt; &lt;vertical&gt;"` --- custom scaling, different for
+    each direction
+
+On the application side, based on the target platform, screen density and
+system configuration, the following three scenarios might happen:
 
 1.  The @ref windowSize() and @ref framebufferSize() is the same and
     @ref dpiScaling() is @cpp 1.0f @ce in both dimentsions. This is common on
@@ -329,13 +358,10 @@ following three scenarios might happen:
     is @cpp 1.0f @ce. This is the case on Windows and macOS with HiDPI-enabled
     apps.
 
-Furthermore, the @ref Configuration::WindowFlag::AllowHighDpi flag affects how
-the window is created. Disabling the flag will cause the app behave as in case
-1, enabling will make it behave as in case 2 or 3. Note that on Apple platforms
-you also have to set the `NSHighResolutionCapable` entry in the `*.plist` file
-of the application bundle to make it working.
+If your application is saving and restoring window size, it's advisable to save
 
-
+Note that some platforms require additional setup in order to mark given app as
+DPI-aware. See @ref platform for more information.
 */
 class CORRADE_VISIBILITY_EXPORT Sdl2Application {
     public:
@@ -1164,6 +1190,52 @@ class Sdl2Application::Configuration {
         typedef Containers::EnumSet<WindowFlag> WindowFlags;
         #endif
 
+        /**
+         * @brief DPI scaling policy
+         *
+         * DPI scaling policy when requesting a particular window size. Can
+         * be overriden on command-line using `--magnum-dpi-scaling` or via
+         * the `MAGNUM_DPI_SCALING` environment variable.
+         * @see @ref setDpiScaling()
+         */
+        enum class DpiScaling: UnsignedByte {
+            /**
+             * Virtual DPI scaling. Scales the window based on UI scaling
+             * setting in the system. Falls back to @ref DpiScaling::Physical
+             * on platforms that don't support it or don't have a concept of
+             * a window (such as mobile devices or
+             * @ref CORRADE_TARGET_EMSCRIPTEN "Emscripten"). This is the
+             * default.
+             *
+             * Equivalent to `--magnum-dpi-scaling virtual` passed on
+             * command-line.
+             */
+            Virtual,
+
+            /**
+             * Physical DPI scaling. Takes the requested window size as a
+             * physical size that a window would have on platform's default DPI
+             * and scales it to have the same size on given display physical
+             * DPI. On platforms that don't have a concept of a window it
+             * causes the framebuffer to match screen pixels 1:1 without any
+             * scaling.
+             *
+             * Equivalent to `--magnum-dpi-scaling physical` passed on
+             * command-line.
+             */
+            Physical,
+
+            /**
+             * No DPI scaling. Causes the application to behave as a
+             * non-DPI-aware (which may cause blurry appearance on some systems
+             * or unreasonably small window sizes on other).
+             *
+             * Equivalent to `--magnum-dpi-scaling none` passed on
+             * command-line.
+             */
+            None
+        };
+
         /*implicit*/ Configuration();
         ~Configuration();
 
@@ -1204,10 +1276,9 @@ class Sdl2Application::Configuration {
          * @return Reference to self (for method chaining)
          *
          * Default is @cpp {800, 600} @ce and @cpp {640, 480} @ce on
-         * Emscripten. On iOS it defaults to a "reasonable" size based on
-         * whether HiDPI support is enabled using @ref WindowFlag::AllowHighDpi,
-         * but not necessarily native display resolution (you have to set it
-         * explicitly).
+         * Emscripten. On iOS it defaults to a size that matches display
+         * resolution. See @ref Platform-Sdl2Application-dpi and
+         * @ref DpiScaling for more information.
          */
         Configuration& setSize(const Vector2i& size) {
             _size = size;
