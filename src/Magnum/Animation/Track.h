@@ -63,13 +63,16 @@ are common combinations:
 Interpolation type  | Value type        | Result type   | Interpolator
 ------------------- | ----------------- | ------------- | ------------
 Constant            | any `V`           | `V`           | @ref Math::select()
+Constant | @ref Math::CubicHermitePoint | @ref Math::Vector | @ref Math::select(const CubicHermitePoint<dimensions, T>&, const CubicHermitePoint<dimensions, T>&, T) "Math::select()"
 Linear  | @cpp bool @ce <b></b> | @cpp bool @ce <b></b> | @ref Math::select()
 Linear  | @ref Math::BoolVector | @ref Math::BoolVector | @ref Math::select()
 Linear              | any scalar `V`    | `V`           | @ref Math::lerp()
 Linear              | any vector `V`    | `V`           | @ref Math::lerp()
 Linear              | @ref Math::Quaternion | @ref Math::Quaternion | @ref Math::lerp(const Quaternion<T>&, const Quaternion<T>&, T) "Math::lerp()"
+Linear | @ref Math::CubicHermitePoint | @ref Math::Vector | @ref Math::lerp(const CubicHermitePoint<dimensions, T>&, const CubicHermitePoint<dimensions, T>&, T) "Math::lerp()"
 Spherical linear    | @ref Math::Quaternion | @ref Math::Quaternion | @ref Math::slerp(const Quaternion<T>&, const Quaternion<T>&, T) "Math::slerp()"
 Screw linear        | @ref Math::DualQuaternion | @ref Math::DualQuaternion | @ref Math::sclerp(const DualQuaternion<T>&, const DualQuaternion<T>&, T) "Math::sclerp()"
+Spline | @ref Math::CubicHermitePoint | @ref Math::Vector | @ref Math::splerp(const CubicHermitePoint<dimensions, T>&, const CubicHermitePoint<dimensions, T>&, T) "Math::splerp()"
 
 It's also possible to supply a generic interpolation behavior by passing the
 @ref Interpolation enum to the constructor. In case the interpolator function

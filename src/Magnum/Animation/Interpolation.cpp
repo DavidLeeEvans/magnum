@@ -25,6 +25,7 @@
 
 #include "Interpolation.h"
 
+#include "Magnum/Math/CubicHermite.h"
 #include "Magnum/Math/DualQuaternion.h"
 
 namespace Magnum { namespace Animation {
@@ -36,6 +37,7 @@ Debug& operator<<(Debug& debug, const Interpolation value) {
         #define _c(value) case Interpolation::value: return debug << "Animation::Interpolation::" #value;
         _c(Constant)
         _c(Linear)
+        _c(Spline)
         _c(Custom)
         #undef _c
         /* LCOV_EXCL_STOP */
@@ -66,6 +68,7 @@ template<class T> auto TypeTraits<Math::Quaternion<T>, Math::Quaternion<T>>::int
         case Interpolation::Constant: return Math::select;
         case Interpolation::Linear: return Math::slerp;
 
+        case Interpolation::Spline:
         case Interpolation::Custom: ; /* nope */
     }
 
@@ -77,6 +80,19 @@ template<class T> auto TypeTraits<Math::DualQuaternion<T>, Math::DualQuaternion<
         case Interpolation::Constant: return Math::select;
         case Interpolation::Linear: return Math::sclerp;
 
+        case Interpolation::Spline:
+        case Interpolation::Custom: ; /* nope */
+    }
+
+    CORRADE_ASSERT(false, "Animation::interpolatorFor(): can't deduce interpolator function for" << interpolation, {});
+}
+
+template<UnsignedInt dimensions, class T> auto TypeTraits<Math::CubicHermitePoint<dimensions, T>, Math::Vector<std::size_t(dimensions), T>>::interpolator(Interpolation interpolation) -> Interpolator {
+    switch(interpolation) {
+        case Interpolation::Constant: return Math::select;
+        case Interpolation::Linear: return Math::lerp;
+        case Interpolation::Spline: return Math::splerp;
+
         case Interpolation::Custom: ; /* nope */
     }
 
@@ -85,6 +101,8 @@ template<class T> auto TypeTraits<Math::DualQuaternion<T>, Math::DualQuaternion<
 
 template struct MAGNUM_EXPORT TypeTraits<Math::Quaternion<Float>, Math::Quaternion<Float>>;
 template struct MAGNUM_EXPORT TypeTraits<Math::DualQuaternion<Float>, Math::DualQuaternion<Float>>;
+template struct MAGNUM_EXPORT TypeTraits<Math::CubicHermitePoint<2, Float>, Math::Vector<2, Float>>;
+template struct MAGNUM_EXPORT TypeTraits<Math::CubicHermitePoint<3, Float>, Math::Vector<3, Float>>;
 
 }
 

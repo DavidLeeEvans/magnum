@@ -25,6 +25,7 @@
 
 #include "Magnum/Magnum.h"
 #include "Magnum/Math/Color.h"
+#include "Magnum/Math/CubicHermite.h"
 #include "Magnum/Math/DualComplex.h"
 #include "Magnum/Math/DualQuaternion.h"
 #include "Magnum/Math/Half.h"
@@ -591,6 +592,18 @@ static_cast<void>(a1);
 static_cast<void>(a2);
 static_cast<void>(q1);
 static_cast<void>(q2);
+}
+
+{
+/* [CubicHermitePoint-fromBezier] */
+CubicBezier2D segment;
+auto startPoint = CubicHermitePoint2D::fromBezier(
+    {Vector2{}, Vector2{}, Vector2{}, segment[3]}, segment);
+auto endPoint = CubicHermitePoint2D::fromBezier(segment,
+    {segment[0], Vector2{}, Vector2{}, Vector2{}});
+/* [CubicHermitePoint-fromBezier] */
+static_cast<void>(startPoint);
+static_cast<void>(endPoint);
 }
 
 {

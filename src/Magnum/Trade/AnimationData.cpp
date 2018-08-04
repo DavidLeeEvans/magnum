@@ -99,6 +99,9 @@ template MAGNUM_TRADE_EXPORT auto animationInterpolatorFor<Vector4i, Vector4i>(A
 template MAGNUM_TRADE_EXPORT auto animationInterpolatorFor<Vector4ui, Vector4ui>(Animation::Interpolation) -> Vector4ui(*)(const Vector4ui&, const Vector4ui&, Float);
 template MAGNUM_TRADE_EXPORT auto animationInterpolatorFor<Quaternion, Quaternion>(Animation::Interpolation) -> Quaternion(*)(const Quaternion&, const Quaternion&, Float);
 template MAGNUM_TRADE_EXPORT auto animationInterpolatorFor<DualQuaternion, DualQuaternion>(Animation::Interpolation) -> DualQuaternion(*)(const DualQuaternion&, const DualQuaternion&, Float);
+template MAGNUM_TRADE_EXPORT auto animationInterpolatorFor<CubicHermitePoint2D, Math::Vector<2, Float>>(Animation::Interpolation) -> Math::Vector<2, Float>(*)(const CubicHermitePoint2D&, const CubicHermitePoint2D&, Float);
+template MAGNUM_TRADE_EXPORT auto animationInterpolatorFor<CubicHermitePoint3D, Math::Vector<3, Float>>(Animation::Interpolation) -> Math::Vector<3, Float>(*)(const CubicHermitePoint3D&, const CubicHermitePoint3D&, Float);
+/** @todo ughhhh vector3?? */
 
 Debug& operator<<(Debug& debug, const AnimationTrackType value) {
     switch(value) {
@@ -122,6 +125,8 @@ Debug& operator<<(Debug& debug, const AnimationTrackType value) {
         _c(Vector4i)
         _c(Quaternion)
         _c(DualQuaternion)
+        _c(CubicHermitePoint2D)
+        _c(CubicHermitePoint3D)
         #undef _c
         /* LCOV_EXCL_STOP */
     }

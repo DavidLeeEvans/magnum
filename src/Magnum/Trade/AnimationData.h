@@ -81,7 +81,10 @@ enum class AnimationTrackType: UnsignedByte {
      */
     Quaternion,
 
-    DualQuaternion      /**< @ref Magnum::DualQuaternion "DualQuaternion" */
+    DualQuaternion,     /**< @ref Magnum::DualQuaternion "DualQuaternion" */
+
+    CubicHermitePoint2D,
+    CubicHermitePoint3D
 };
 
 /** @debugoperatorenum{AnimationTrackType} */
@@ -424,6 +427,9 @@ namespace Implementation {
 
     template<> constexpr AnimationTrackType animationTypeFor<Quaternion>() { return AnimationTrackType::Quaternion; }
     template<> constexpr AnimationTrackType animationTypeFor<DualQuaternion>() { return AnimationTrackType::DualQuaternion; }
+
+    template<> constexpr AnimationTrackType animationTypeFor<CubicHermitePoint2D>() { return AnimationTrackType::CubicHermitePoint2D; }
+    template<> constexpr AnimationTrackType animationTypeFor<CubicHermitePoint3D>() { return AnimationTrackType::CubicHermitePoint3D; }
     /* LCOV_EXCL_STOP */
 }
 #endif

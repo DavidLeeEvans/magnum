@@ -456,6 +456,12 @@ typedef Math::CubicBezier2D<Float> CubicBezier2D;
 /** @brief Float three-dimensional cubic Bézier curve */
 typedef Math::CubicBezier3D<Float> CubicBezier3D;
 
+/** @brief Float two-dimensional cubic Hermite spline point */
+typedef Math::CubicHermitePoint2D<Float> CubicHermitePoint2D;
+
+/** @brief Float three-dimensional cubic Hermite spline point */
+typedef Math::CubicHermitePoint3D<Float> CubicHermitePoint3D;
+
 /** @brief Float complex number */
 typedef Math::Complex<Float> Complex;
 
@@ -640,6 +646,12 @@ typedef Math::CubicBezier2D<Float> CubicBezier2Dd;
 
 /** @brief Double three-dimensional cubic Bézier curve */
 typedef Math::CubicBezier3D<Float> CubicBezier3Dd;
+
+/** @brief Double two-dimensional cubic Hermite spline point */
+typedef Math::CubicHermitePoint2D<Double> CubicHermitePoint2Dd;
+
+/** @brief Double three-dimensional cubic Hermite spline point */
+typedef Math::CubicHermitePoint3D<Double> CubicHermitePoint3Dd;
 
 /** @brief Double complex number */
 typedef Math::Complex<Double> Complexd;

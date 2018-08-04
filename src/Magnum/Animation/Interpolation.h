@@ -61,6 +61,13 @@ enum class Interpolation: UnsignedByte {
     Linear,
 
     /**
+     * Spline interpolation.
+     *
+     * @see @ref Math::splerp()
+     */
+    Spline,
+
+    /**
      * Custom interpolation. An user-supplied interpolation function should be
      * used.
      */
@@ -96,12 +103,15 @@ faster but less precise results.
 Interpolation type  | Value type        | Result type   | Interpolator
 ------------------- | ----------------- | ------------- | ------------
 @ref Interpolation::Constant | any `V`  | `V`           | @ref Math::select()
+@ref Interpolation::Constant | @ref Math::CubicHermitePoint | @ref Math::Vector | @ref Math::select(const CubicHermitePoint<dimensions, T>&, const CubicHermitePoint<dimensions, T>&, T) "Math::select()"
 @ref Interpolation::Linear | @cpp bool @ce <b></b> | @cpp bool @ce <b></b> | @ref Math::select()
 @ref Interpolation::Linear | @ref Math::BoolVector | @ref Math::BoolVector | @ref Math::select()
 @ref Interpolation::Linear | any scalar `V` | `V`       | @ref Math::lerp()
 @ref Interpolation::Linear | any vector `V` | `V`       | @ref Math::lerp()
 @ref Interpolation::Linear | @ref Math::Quaternion | @ref Math::Quaternion | @ref Math::slerp(const Quaternion<T>&, const Quaternion<T>&, T) "Math::slerp()"
 @ref Interpolation::Linear | @ref Math::DualQuaternion | @ref Math::DualQuaternion | @ref Math::sclerp(const DualQuaternion<T>&, const DualQuaternion<T>&, T) "Math::sclerp()"
+@ref Interpolation::Linear | @ref Math::CubicHermitePoint | @ref Math::Vector | @ref Math::lerp(const CubicHermitePoint<dimensions, T>&, const CubicHermitePoint<dimensions, T>&, T) "Math::lerp()"
+@ref Interpolation::Spline | @ref Math::CubicHermitePoint | @ref Math::Vector | @ref Math::splerp(const CubicHermitePoint<dimensions, T>&, const CubicHermitePoint<dimensions, T>&, T) "Math::splerp()"
 
 @see @ref interpolate(), @ref interpolateStrict()
 @experimental
@@ -222,6 +232,7 @@ template<class V> auto TypeTraits<V, V>::interpolator(Interpolation interpolatio
         case Interpolation::Constant: return Math::select;
         case Interpolation::Linear: return Math::lerp;
 
+        case Interpolation::Spline:
         case Interpolation::Custom: ; /* nope */
     }
 
@@ -239,6 +250,7 @@ template<class T> auto TypeTraitsBool<T>::interpolator(Interpolation interpolati
         case Interpolation::Constant:
         case Interpolation::Linear: return Math::select;
 
+        case Interpolation::Spline:
         case Interpolation::Custom: ; /* nope */
     }
 
@@ -255,6 +267,14 @@ template<class T> struct MAGNUM_EXPORT TypeTraits<Math::Quaternion<T>, Math::Qua
 };
 template<class T> struct MAGNUM_EXPORT TypeTraits<Math::DualQuaternion<T>, Math::DualQuaternion<T>> {
     typedef Math::DualQuaternion<T>(*Interpolator)(const Math::DualQuaternion<T>&, const Math::DualQuaternion<T>&, Float);
+
+    static Interpolator interpolator(Interpolation interpolation);
+};
+
+/* Cubic Hermite spline point has a different result type */
+/** @todo get rid of the std::size_t() cast (all math types should have UInt) */
+template<UnsignedInt dimensions, class T> struct MAGNUM_EXPORT TypeTraits<Math::CubicHermitePoint<dimensions, T>, Math::Vector<std::size_t(dimensions), T>> {
+    typedef Math::Vector<std::size_t(dimensions), T>(*Interpolator)(const Math::CubicHermitePoint<dimensions, T>&, const Math::CubicHermitePoint<dimensions, T>&, Float);
 
     static Interpolator interpolator(Interpolation interpolation);
 };

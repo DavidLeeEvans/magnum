@@ -51,6 +51,10 @@ template<class T> using QuadraticBezier3D = QuadraticBezier<3, T>;
 template<class T> using CubicBezier2D = CubicBezier<2, T>;
 template<class T> using CubicBezier3D = CubicBezier<3, T>;
 
+template<UnsignedInt, class> class CubicHermitePoint;
+template<class T> using CubicHermitePoint2D = CubicHermitePoint<2, T>;
+template<class T> using CubicHermitePoint3D = CubicHermitePoint<3, T>;
+
 template<class> class Complex;
 template<class> class Dual;
 template<class> class DualComplex;
